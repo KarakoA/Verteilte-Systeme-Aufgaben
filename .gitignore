@@ -1,3 +1,4 @@
 libs/*
 bin/*
 .DS_Store
+.settings/**
