@@ -8,5 +8,6 @@
 		</accessrules>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/sb.toolbox"/>
+	<classpathentry kind="lib" path="lib/sb-toolbox-1.1.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

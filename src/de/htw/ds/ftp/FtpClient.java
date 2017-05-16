@@ -34,6 +34,7 @@ import de.sb.toolbox.net.InetAddresses;
 @Copyright(year=2011, holders="Sascha Baumeister")
 public final class FtpClient implements AutoCloseable {
 	static private final Charset ASCII = Charset.forName("US-ASCII");
+	private static final int BUFFER_SIZE=0x10000;
 
 	private final InetSocketAddress serverAddress;
 	private volatile Socket controlConnection;
@@ -146,49 +147,46 @@ public final class FtpClient implements AutoCloseable {
 	 * @throws IOException if there is an I/O related problem
 	 */
 	public synchronized void receiveFile (final Path sourceFile, final Path sinkDirectory) throws IOException {
-		if (this.isClosed()) throw new IllegalStateException();
-		if (!Files.isDirectory(sinkDirectory)) throw new NotDirectoryException(sinkDirectory.toString());
-	
-		//If the source file parent is not null, issue a CWD message to the FTP server 
-		// using sendRequest(), setting it's current working directory to the source file parent.
-		Path sourceParent=sourceFile.getParent();
-		if(sourceParent == null) throw new NotDirectoryException("sourceParent");
-		//CWD stands for change working directory
-		FtpResponse response = this.sendRequest("CWD "+sourceParent);
+		if (this.isClosed())
+			throw new IllegalStateException();
+		if (!Files.isDirectory(sinkDirectory))
+			throw new NotDirectoryException(sinkDirectory.toString());
+		FtpResponse response;
 
-		// Send a PASV message to query the socket-address to be used for the data transfer;
-		//ask the response for the socket address returned using FtpResponse#decodeDataPort().
-		//PASV - Passive Mode
-		response = this.sendRequest("PASV");
-	
-		InetSocketAddress newConnectionAddress =response.decodeDataPort();
-		InetAddress address= newConnectionAddress.getAddress();
-		int port = newConnectionAddress.getPort();
-		// Open a data connection to the socket-address using "new Socket(host, port)".
-		try (Socket socket = new Socket(address, port)) {
-			// Send a RETR message over the control connection. After receiving the first part 
-			// of it's response (code 150), transport the content of the data connection's INPUT
-			// stream to the target file, closing it once there is no more data. 
-			response = this.sendRequest("RETR " + sourceFile);
-			if (response.getCode() != 150)
+		Path outputFilePath = sinkDirectory.resolve(sourceFile.getFileName());
+		try (OutputStream fos = Files.newOutputStream(outputFilePath)) {
+
+			if (sourceFile.getParent() != null) {
+				// CWD - change working directory. If parent is null- file is in root.
+				response = this.sendRequest("CWD " + sourceFile.getParent());
+				if (response.getCode() != 250)
+					throw new NotDirectoryException(response.toString());
+			}
+			// PASV - Passive Mode,request new connection for data transfer
+			response = this.sendRequest("PASV");
+			if (response.getCode() != 227)
 				throw new ProtocolException(response.toString());
+			final InetSocketAddress newConnection = response.decodeDataPort();
 
-			Path outputFilePath = sinkDirectory.resolve(sourceFile.getFileName());
-			Files.deleteIfExists(outputFilePath);
-			Files.createFile(outputFilePath);
-			try (OutputStream fos = Files.newOutputStream(outputFilePath)) {
-				InputStream is = socket.getInputStream();
-				final byte[] buffer = new byte[0x10000];
-				for (int bytesRead = is.read(buffer); bytesRead != -1; bytesRead = is.read(buffer)) {
-					fos.write(buffer, 0, bytesRead);
+			// Open a data connection with the given parameters
+			try (Socket socket = new Socket(newConnection.getAddress(), newConnection.getPort())) {
+				response = this.sendRequest("RETR " + sourceFile.getFileName());
+				if (response.getCode() != 150)
+					throw new ProtocolException(response.toString());
+				
+				try (InputStream is = socket.getInputStream()) {
+					final byte[] buffer = new byte[BUFFER_SIZE];
+					for (int bytesRead = is.read(buffer); bytesRead != -1; bytesRead = is.read(buffer)) {
+						fos.write(buffer, 0, bytesRead);
+					}
 				}
 			}
-			//Then receive the second part of the RETR response (code 226) using receiveResponse(). 
-			//Make sure the sink file and the data connection are closed in any case.
 			response = this.receiveResponse();
-			if(response.getCode() != 226) throw new ProtocolException(response.toString());
+			if (response.getCode() != 226)
+				throw new ProtocolException(response.toString());
 		}
 	}
+
 
 
 	/**
@@ -264,7 +262,7 @@ public final class FtpClient implements AutoCloseable {
 
 			try (InputStream fis = Files.newInputStream(sourceFile)) {
 				OutputStream outputStream = socket.getOutputStream();
-				final byte[] buffer = new byte[0x10000];
+				final byte[] buffer = new byte[BUFFER_SIZE];
 				for (int bytesRead = fis.read(buffer); bytesRead != -1; bytesRead = fis.read(buffer)) {
 					outputStream.write(buffer, 0, bytesRead);
 				}

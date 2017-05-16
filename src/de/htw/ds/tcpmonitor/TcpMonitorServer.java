@@ -138,6 +138,8 @@ public class TcpMonitorServer implements Runnable, AutoCloseable {
 		 * vice versa. Closes all connections upon completion.
 		 */
 		public void run() {
+			Future<?> clientThreadFuture = null;
+			Future<?> serverThreadFuture = null;
 			try (Socket clientConnection = this.clientConnection) {
 				long openTimestamp = System.currentTimeMillis();
 				try (Socket serverConnection = new Socket(this.parent.redirectHostAddress.getHostName(),this.parent.redirectHostAddress.getPort())) {
@@ -152,8 +154,6 @@ public class TcpMonitorServer implements Runnable, AutoCloseable {
 						MultiOutputStream multiOutputStreamServer = new MultiOutputStream(serverConnection.getOutputStream(), outputStreamBytesClient);
 
 						int bufferSize = 0x10000;
-						Future<?> clientThreadFuture = null;
-						Future<?> serverThreadFuture = null;
 						// Transport all content from the client connection's input stream into
 						// both the server connection's output stream and a byte output stream.
 						clientThreadFuture = parent.threadPool.submit(() -> {
@@ -185,6 +185,8 @@ public class TcpMonitorServer implements Runnable, AutoCloseable {
 				// If anything goes wrong, use "this.parent.exceptionConsumer.accept()" instead.
 			} catch (final Throwable exception) {
 				exception.printStackTrace();
+				clientThreadFuture.cancel(true);
+				serverThreadFuture.cancel(true);
 				this.parent.exceptionConsumer.accept(exception);
 			}
 		}
