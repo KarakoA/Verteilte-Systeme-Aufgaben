@@ -225,42 +225,51 @@ public final class FtpClient implements AutoCloseable {
 			throw new IllegalStateException();
 		if (!Files.isReadable(sourceFile))
 			throw new NoSuchFileException(sourceFile.toString());
+		
+		FtpResponse response;
+		
+		try (InputStream fis = Files.newInputStream(sourceFile)) {
 
-		// If the target directory is not null, issue a CWD message to the
-		// FTP server
-		// using sendRequest(), setting it's current working directory to the
-		// target directory.
+			// If the target directory is not null, issue a CWD message to the
+			// FTP server
+			// using sendRequest(), setting it's current working directory to the
+			// target directory.
+	
+			if (sinkDirectory == null)
+				throw new NotDirectoryException("target directory");
 
-		if (sinkDirectory == null)
-			throw new NotDirectoryException("target directory");
-
-		// CWD stands for change working directory
-		FtpResponse response = this.sendRequest("CWD " + sinkDirectory);
-
-		// Send a PASV message to query the socket-address to be used for the
-		// data transfer; ask
-		// the response for the socket address returned using
-		// FtpResponse#decodeDataPort().
-		// PASV - Passive Mode
-		response = this.sendRequest("PASV");
-
-		InetSocketAddress newConnectionAddress = response.decodeDataPort();
-		InetAddress address = newConnectionAddress.getAddress();
-		int port = newConnectionAddress.getPort();
-
-		// Open a data connection to the socket-address using "new Socket(host,
-		// port)".
-		try (Socket socket = new Socket(address, port)) {
-			// Send a STOR message over the control connection.
-			response = this.sendRequest("STOR " + sourceFile.getFileName());
-
-			// After receiving the first part of its response (code 150),
-			// transport the source file content to the data connection's
-			// OUTPUT stream, closing it once there is no more data.
-			if (response.getCode() != 150)
+			// CWD stands for change working directory
+			response = this.sendRequest("CWD " + sinkDirectory);
+			if (response.getCode() != 250)
+				throw new NotDirectoryException(response.toString());
+	
+			// Send a PASV message to query the socket-address to be used for the
+			// data transfer; ask
+			// the response for the socket address returned using
+			// FtpResponse#decodeDataPort().
+			// PASV - Passive Mode
+			response = this.sendRequest("PASV");
+			if (response.getCode() != 227)
 				throw new ProtocolException(response.toString());
+	
+			final InetSocketAddress newConnectionAddress = response.decodeDataPort();
+			final InetAddress address = newConnectionAddress.getAddress();
+			final int port = newConnectionAddress.getPort();
 
-			try (InputStream fis = Files.newInputStream(sourceFile)) {
+			// Open a data connection to the socket-address using "new Socket(host,
+			// port)".
+			try (Socket socket = new Socket(address, port)) {
+				// Send a STOR message over the control connection.
+				response = this.sendRequest("STOR " + sourceFile.getFileName());
+				if (response.getCode() != 150)
+					throw new ProtocolException(response.toString());
+	
+				// After receiving the first part of its response (code 150),
+				// transport the source file content to the data connection's
+				// OUTPUT stream, closing it once there is no more data.
+				
+
+			
 				OutputStream outputStream = socket.getOutputStream();
 				final byte[] buffer = new byte[BUFFER_SIZE];
 				for (int bytesRead = fis.read(buffer); bytesRead != -1; bytesRead = fis.read(buffer)) {
