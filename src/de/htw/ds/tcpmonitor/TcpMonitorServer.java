@@ -138,8 +138,7 @@ public class TcpMonitorServer implements Runnable, AutoCloseable {
 		 * vice versa. Closes all connections upon completion.
 		 */
 		public void run() {
-			Future<?> clientThreadFuture = null;
-			Future<?> serverThreadFuture = null;
+			Future<?> clientThreadFuture = null, serverThreadFuture = null;
 			try (Socket clientConnection = this.clientConnection) {
 				long openTimestamp = System.currentTimeMillis();
 				try (Socket serverConnection = new Socket(this.parent.redirectHostAddress.getHostName(),this.parent.redirectHostAddress.getPort())) {

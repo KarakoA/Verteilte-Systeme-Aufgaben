@@ -1,4 +1,4 @@
-package de.htw.ds.tcp;
+package de.htw.ds.tcpmonitor;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -26,7 +26,7 @@ import de.sb.toolbox.Copyright;
  * clients that dynamically change their IP-address during a session's lifetime.
  */
 @Copyright(year=2008, holders="Sascha Baumeister")
-public class TcpSwitchServerSkeleton implements Runnable, Closeable {
+public class TcpSwitchServer implements Runnable, Closeable {
 
 	private final ExecutorService threadPool;
 	private final ServerSocket host;
@@ -44,7 +44,7 @@ s	 * @throws NullPointerException if any of the given addresses is {@code null}
 	 *         the given socket-addresses array is empty
 	 * @throws IOException if the given port is already in use, or cannot be bound
 	 */
-	public TcpSwitchServerSkeleton (final int servicePort, final InetSocketAddress[] redirectHostAddresses, final boolean sessionAware) throws IOException {
+	public TcpSwitchServer (final int servicePort, final InetSocketAddress[] redirectHostAddresses, final boolean sessionAware) throws IOException {
 		if (redirectHostAddresses.length == 0) throw new IllegalArgumentException();
 
 		this.threadPool = Executors.newCachedThreadPool();
@@ -122,7 +122,7 @@ s	 * @throws NullPointerException if any of the given addresses is {@code null}
 	 */
 	static private class ConnectionHandler implements Runnable {
 		@SuppressWarnings("unused")	// TODO: remove
-		private final TcpSwitchServerSkeleton parent;
+		private final TcpSwitchServer parent;
 		@SuppressWarnings("unused")	// TODO: remove
 		private final Socket clientConnection;
 
@@ -133,7 +133,7 @@ s	 * @throws NullPointerException if any of the given addresses is {@code null}
 		 * @param clientConnection the connection
 		 * @throws NullPointerException if any of the given arguments is {@code null}
 		 */
-		public ConnectionHandler (final TcpSwitchServerSkeleton parent, final Socket clientConnection) {
+		public ConnectionHandler (final TcpSwitchServer parent, final Socket clientConnection) {
 			if (parent == null | clientConnection == null) throw new NullPointerException();
 
 			this.parent = parent;
