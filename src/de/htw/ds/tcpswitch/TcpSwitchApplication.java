@@ -1,4 +1,4 @@
-package de.htw.ds.tcpmonitor;
+package de.htw.ds.tcpswitch;
 
 import java.io.BufferedReader;
 import java.io.IOException;
