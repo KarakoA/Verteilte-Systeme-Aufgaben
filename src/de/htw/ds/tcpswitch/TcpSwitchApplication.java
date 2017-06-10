@@ -1,4 +1,4 @@
-package de.htw.ds.tcpmonitor;
+package de.htw.ds.tcpswitch;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,6 +29,9 @@ public final class TcpSwitchApplication {
 	/**
 	 * Application entry point. The given runtime parameters must be a service port, the session
 	 * awareness, and the list of address:port combinations for the cluster nodes.
+	 * Example usage 8010 false 127.0.0.1:8888 127.0.0.1:8889
+	 * Note: 2 Servers with identical content should be started before that(in this case port 8888, 8889).
+	 * I used 2 jupyter notebooks for that
 	 * @param args the given runtime arguments
 	 * @throws IllegalArgumentException if the given service port is outside range [0, 0xFFFF], or
 	 *         there are no cluster nodes
