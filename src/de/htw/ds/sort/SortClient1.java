@@ -26,6 +26,8 @@ public final class SortClient1 extends SortClient {
 	/**
 	 * Processes a stream sort test case. Arguments are the path to the input file, and the path of
 	 * the sorted output file.
+	 * Example args-   resources/goethe-faust/goethe-faust.txt out.txt
+	 * 				   resources/goethe-faust/goethe-faust-x50.txt out.txt
 	 * @param args the given runtime arguments
 	 * @throws IOException if there is an I/O related problem
 	 */
