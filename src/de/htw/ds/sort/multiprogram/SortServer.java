@@ -10,7 +10,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,7 +40,6 @@ public final class SortServer implements Runnable, AutoCloseable {
 	 * Static inner class modeling CSP connection handlers that are spawned whenever
 	 * a new TCP connection is established.
 	 */
-	@SuppressWarnings("unused") // TODO: remove when implementing
 	static private class ConnectionHandler implements Runnable {
 		private final Socket connection;
 
@@ -80,14 +78,19 @@ public final class SortServer implements Runnable, AutoCloseable {
 					result = charSource.readLine();
 				}
 				streamSorter.sort();
-				
-				while(streamSorter.getState() == State.READ){
-					String sortedResult  = streamSorter.read();
-					charSink.write(sortedResult);
+				try {
+					while(streamSorter.getState() == State.READ){
+						String sortedResult  = streamSorter.read();
+						charSink.write(sortedResult);
+						charSink.newLine();
+						charSink.flush();
+					}
+				} catch (final IOException exception) {
+					charSink.write("errors");
 					charSink.newLine();
 					charSink.flush();
+					throw new IllegalStateException(exception);
 				}
-				
 			} catch (final IOException exception) {
 				throw new IllegalStateException(exception);
 			}
