@@ -4,11 +4,16 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import de.htw.ds.sort.SortClient;
 import de.htw.ds.sort.StreamSorter;
+import de.htw.ds.sort.multithread.MultiThreadSorter;
 import de.sb.toolbox.Copyright;
 
 
@@ -25,24 +30,24 @@ public final class SortClient3 extends SortClient {
 	 * @return the stream sorter
 	 */
 	static private StreamSorter<String> createSorter(InetSocketAddress[] sockets) {
-//		int processorCount=Runtime.getRuntime().availableProcessors();
-//		if(processorCount == 1)
-//			return new SingleThreadSorter<>();
-//		else{
-//			Queue<StreamSorter<String>> queue = new ArrayDeque<>();
-//			//fill the queue with single thread sorters
-//			for (int i = 0; i < processorCount; i++) 
-//				queue.add(new SingleThreadSorter<String>());
-//			
-//			//combine them to multi thread sorters
-//			while(queue.size() !=1){
-//				StreamSorter<String> left = queue.poll();
-//				StreamSorter<String> right = queue.poll();
-//				queue.add(new MultiThreadSorter<>(left,right,threadPool));
-//			}
-//			return queue.poll();
-//		}
-		return new MultiProgramSorter(sockets[0]);
+		int processorCount=sockets.length;
+		ExecutorService threadPool = Executors.newCachedThreadPool();
+		if(processorCount == 1)
+			return new MultiProgramSorter(sockets[0]);
+		else{
+			Queue<StreamSorter<String>> queue = new ArrayDeque<>();
+			//fill the queue with single thread sorters
+			for (int i = 0; i < sockets.length; i++) 
+				queue.add(new MultiProgramSorter(sockets[i]));
+			
+			//combine them to multi thread sorters
+			while(queue.size() !=1){
+				StreamSorter<String> left = queue.poll();
+				StreamSorter<String> right = queue.poll();
+				queue.add(new MultiThreadSorter<>(left,right,threadPool));
+			}
+			return queue.poll();
+		}
 	}
 
 
