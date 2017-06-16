@@ -7,6 +7,7 @@ import de.sb.toolbox.Copyright;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 /**
  * Multi threaded merge sorter implementation that distributes elements evenly over two child
@@ -25,22 +26,19 @@ public class MultiThreadSorter<E extends Comparable<E>> implements StreamSorter<
 	private volatile E leftCache, rightCache;
 	private volatile InternalState internalState;
 
-	private final ExecutorService threadPool;
-
 	/**
 	 * Creates a new instance in {@link State#WRITE} state that is based on two child sorters.
 	 * @param leftChild the left child
 	 * @param rightChild the right child
 	 * @throws NullPointerException if one of the given children is {@code null}
 	 */
-	public MultiThreadSorter(final StreamSorter<E> leftChild, final StreamSorter<E> rightChild,ExecutorService threadPool) {
+	public MultiThreadSorter(final StreamSorter<E> leftChild, final StreamSorter<E> rightChild) {
 		if (leftChild == null || rightChild == null)
 			throw new NullPointerException();
 
 		this.leftChild = leftChild;
 		this.rightChild = rightChild;
 		this.internalState = InternalState.WRITE_LEFT;
-		this.threadPool = threadPool;
 		
 	}
 
@@ -126,37 +124,37 @@ public class MultiThreadSorter<E extends Comparable<E>> implements StreamSorter<
 		// of the read() operation (for the caches) and a possible exception (for a rethrow)
 		// after resynchronisation. Implement the method using either an indebted semaphore
 		// and shared references, or using futures.
-		Future<?> sortLeftFuture = threadPool.submit(() -> {
+		
+		//TODO nicht futures, mit frische threads 
+		
+		FutureTask<E> sortLeftFuture = new FutureTask<E>(()->{
 			this.leftChild.sort();
 			try {
-				this.leftCache = this.leftChild.read();
+				return this.leftChild.read();
 			} catch (final IllegalStateException exception) {
-				this.leftCache = null;
+				return null;
 			}
 		});
 
-		Future<?> sortRightFuture = threadPool.submit(() -> {
+		FutureTask<E> sortRightFuture = new FutureTask<E>(()->{
+				
 			this.rightChild.sort();
 			try {
-				this.rightCache = this.rightChild.read();
+				return this.rightChild.read();
 			} catch (final IllegalStateException exception) {
-				this.rightCache = null;
+				return null;
 			}
 		});
+		sortRightFuture.run();
+		sortLeftFuture.run();
 		try {
-			sortLeftFuture.get();
-			sortRightFuture.get();
+			this.leftCache = getUninterruptibly(sortLeftFuture);
+			this.rightCache= getUninterruptibly(sortRightFuture);
 		} catch (ExecutionException e) {
 			Throwable cause = e.getCause();
-			if(cause instanceof IllegalStateException) throw (IllegalStateException)cause;
-			if(cause instanceof IllegalArgumentException) throw (IllegalArgumentException)cause;
-			if(cause instanceof ClassCastException) throw (ClassCastException) cause;
-			if(cause instanceof UnsupportedOperationException) throw (UnsupportedOperationException) cause;			 
+			if(cause instanceof Error) throw (Error) cause;		 
 			if(cause instanceof RuntimeException) throw (RuntimeException) cause;
 			throw new AssertionError(cause);
-		} catch (InterruptedException e) {
-			this.reset();
-			throw new RuntimeException(e);
 		} finally {
 			sortLeftFuture.cancel(true);
 			sortRightFuture.cancel(true);
@@ -187,5 +185,32 @@ public class MultiThreadSorter<E extends Comparable<E>> implements StreamSorter<
 			throw new IllegalStateException();
 		}
 		}
+	}
+	/**
+	 * Repeat the (interruptible) blocking {@link Future#get()} operation until it ends without
+	 * being interrupted. Note that this implementation preserves the interrupt-status of it's
+	 * thread, i.e. interruptions are only delayed, not ignored completely.
+	 * @param future the future
+	 * @throws NullPointerException if any of the given arguments is {@code null}
+	 * @throws ExecutionException if there is a problem during the given future's execution
+	 */
+	static public <T> T getUninterruptibly (final Future<T> future) throws NullPointerException, ExecutionException {
+		T result;
+
+		boolean interrupted = false;
+		try {
+			while (true) {
+				try {
+					result = future.get();
+					break;
+				} catch (final InterruptedException exception) {
+					interrupted = true;
+				}
+			}
+		} finally {
+			if (interrupted) Thread.currentThread().interrupt();
+		}
+
+		return result;
 	}
 }

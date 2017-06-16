@@ -103,7 +103,6 @@ public final class SortServer implements Runnable, AutoCloseable {
 	 * @return the stream sorter
 	 */
 	static private StreamSorter<String> createSorter () {
-		ExecutorService threadPool = Executors.newCachedThreadPool();
 		int processorCount=Runtime.getRuntime().availableProcessors();
 		if(processorCount == 1)
 			return new SingleThreadSorter<>();
@@ -117,7 +116,7 @@ public final class SortServer implements Runnable, AutoCloseable {
 			while(queue.size() !=1){
 				StreamSorter<String> left = queue.poll();
 				StreamSorter<String> right = queue.poll();
-				queue.add(new MultiThreadSorter<>(left,right,threadPool));
+				queue.add(new MultiThreadSorter<>(left,right));
 			}
 			return queue.poll();
 		}
@@ -143,6 +142,7 @@ public final class SortServer implements Runnable, AutoCloseable {
 			final BufferedReader charSource = new BufferedReader(new InputStreamReader(System.in));
 			while (!"quit".equals(charSource.readLine()));
 		}
+		
 	}
 
 

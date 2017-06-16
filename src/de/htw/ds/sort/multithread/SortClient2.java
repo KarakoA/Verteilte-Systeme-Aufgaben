@@ -26,7 +26,7 @@ public final class SortClient2 extends SortClient {
 	 * Returns a new stream sorter.
 	 * @return the stream sorter
 	 */
-	static private StreamSorter<String> createSorter(ExecutorService threadPool) {
+	static private StreamSorter<String> createSorter() {
 		int processorCount=Runtime.getRuntime().availableProcessors();
 		if(processorCount == 1)
 			return new SingleThreadSorter<>();
@@ -40,7 +40,7 @@ public final class SortClient2 extends SortClient {
 			while(queue.size() !=1){
 				StreamSorter<String> left = queue.poll();
 				StreamSorter<String> right = queue.poll();
-				queue.add(new MultiThreadSorter<>(left,right,threadPool));
+				queue.add(new MultiThreadSorter<>(left,right));
 			}
 			return queue.poll();
 		}
@@ -59,12 +59,10 @@ public final class SortClient2 extends SortClient {
 		final Path sourcePath = Paths.get(args[0]);
 		final Path sinkPath = Paths.get(args[1]);
 		
-		ExecutorService threadPool = Executors.newCachedThreadPool();
-		final StreamSorter<String> sorter = createSorter(threadPool);
+		final StreamSorter<String> sorter = createSorter();
 		
 		final SortClient2 client = new SortClient2(sourcePath, sinkPath, sorter);
 		client.process();
-		threadPool.shutdown();
 	}
 
 
