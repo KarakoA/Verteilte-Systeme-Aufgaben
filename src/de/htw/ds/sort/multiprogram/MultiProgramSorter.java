@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 import de.htw.ds.sort.StreamSorter;
 import de.sb.toolbox.Copyright;
@@ -59,8 +60,8 @@ public class MultiProgramSorter implements StreamSorter<String> {
 	 */
 	private void connect () throws IOException {
 		this.connection = new Socket(this.socketAddress.getAddress(), this.socketAddress.getPort());
-		this.charSource = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
-		this.charSink = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
+		this.charSource = new BufferedReader(new InputStreamReader(this.connection.getInputStream(), StandardCharsets.UTF_8));
+		this.charSink = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream(), StandardCharsets.UTF_8));
 	}
 
 

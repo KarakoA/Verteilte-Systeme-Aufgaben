@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import de.sb.toolbox.Copyright;
@@ -43,8 +44,8 @@ public abstract class SortClient {
 	 * @throws IOException if an I/O related problem occurs
 	 */
 	public final void process () throws IOException {
-		try (BufferedReader charSource = Files.newBufferedReader(this.sourcePath, Charset.forName("ISO-8859-2"))) {
-			try (BufferedWriter charSink = Files.newBufferedWriter(this.targetPath, Charset.forName("ISO-8859-2"))) {
+		try (BufferedReader charSource = Files.newBufferedReader(this.sourcePath, StandardCharsets.UTF_8)) {
+			try (BufferedWriter charSink = Files.newBufferedWriter(this.targetPath, StandardCharsets.UTF_8)) {
 				final long timestamp1 = System.currentTimeMillis();
 
 				long elementCount = 0;

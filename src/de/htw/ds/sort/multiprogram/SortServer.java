@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -64,10 +65,10 @@ public final class SortServer implements Runnable, AutoCloseable {
 		 */
 		public void run () {
 			final StreamSorter<String> streamSorter = SortServer.createSorter();
-			try(
-				BufferedReader charSource = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
-				BufferedWriter charSink = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()))
-				){
+			try (
+				BufferedReader charSource = new BufferedReader(new InputStreamReader(this.connection.getInputStream(), StandardCharsets.UTF_8));
+				BufferedWriter charSink = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream(), StandardCharsets.UTF_8));
+			) {
 				charSink.write("ok");
 				charSink.newLine();
 				charSink.flush();
@@ -86,7 +87,7 @@ public final class SortServer implements Runnable, AutoCloseable {
 						charSink.flush();
 					}
 				} catch (final IOException exception) {
-					charSink.write("errors");
+					charSink.write("error");
 					charSink.newLine();
 					charSink.flush();
 					throw new IllegalStateException(exception);

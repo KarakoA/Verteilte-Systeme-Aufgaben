@@ -31,7 +31,6 @@ public final class SortClient3 extends SortClient {
 	 */
 	static private StreamSorter<String> createSorter(InetSocketAddress[] sockets) {
 		int processorCount=sockets.length;
-		ExecutorService threadPool = Executors.newCachedThreadPool();
 		if(processorCount == 1)
 			return new MultiProgramSorter(sockets[0]);
 		else{
@@ -44,7 +43,7 @@ public final class SortClient3 extends SortClient {
 			while(queue.size() !=1){
 				StreamSorter<String> left = queue.poll();
 				StreamSorter<String> right = queue.poll();
-				queue.add(new MultiThreadSorter<>(left,right,threadPool));
+				queue.add(new MultiThreadSorter<>(left,right));
 			}
 			return queue.poll();
 		}
