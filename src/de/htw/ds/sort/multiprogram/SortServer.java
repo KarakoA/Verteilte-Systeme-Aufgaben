@@ -69,24 +69,26 @@ public final class SortServer implements Runnable, AutoCloseable {
 				BufferedReader charSource = new BufferedReader(new InputStreamReader(this.connection.getInputStream(), StandardCharsets.UTF_8));
 				BufferedWriter charSink = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream(), StandardCharsets.UTF_8));
 			) {
-				charSink.write("ok");
-				charSink.newLine();
-				charSink.flush();
-
-				String result = charSource.readLine();
-				while (!("").equals(result)) {
-					streamSorter.write(result);
-					result = charSource.readLine();
-				}
-				streamSorter.sort();
 				try {
-					while(streamSorter.getState() == State.READ){
-						String sortedResult  = streamSorter.read();
+					String result = charSource.readLine();
+					while (!("").equals(result)) {
+						streamSorter.write(result);
+						result = charSource.readLine();
+					}
+
+					streamSorter.sort();
+
+					charSink.write("ok");
+					charSink.newLine();
+					charSink.flush();
+
+					while (streamSorter.getState() == State.READ) {
+						String sortedResult = streamSorter.read();
 						charSink.write(sortedResult);
 						charSink.newLine();
 						charSink.flush();
 					}
-				} catch (final IOException exception) {
+				} catch (final Throwable exception) {
 					charSink.write("error");
 					charSink.newLine();
 					charSink.flush();

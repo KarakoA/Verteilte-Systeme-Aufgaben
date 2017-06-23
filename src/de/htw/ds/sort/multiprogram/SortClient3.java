@@ -7,8 +7,6 @@ import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Queue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import de.htw.ds.sort.SortClient;
@@ -30,12 +28,12 @@ public final class SortClient3 extends SortClient {
 	 * @return the stream sorter
 	 */
 	static private StreamSorter<String> createSorter(InetSocketAddress[] sockets) {
-		int processorCount=sockets.length;
-		if(processorCount == 1)
+		int serversCount=sockets.length;
+		if(serversCount== 1)
 			return new MultiProgramSorter(sockets[0]);
 		else{
 			Queue<StreamSorter<String>> queue = new ArrayDeque<>();
-			//fill the queue with single thread sorters
+			//fill the queue with multi programm sorters
 			for (int i = 0; i < sockets.length; i++) 
 				queue.add(new MultiProgramSorter(sockets[i]));
 			
