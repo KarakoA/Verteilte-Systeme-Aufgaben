@@ -145,8 +145,10 @@ public class MultiThreadSorter<E extends Comparable<E>> implements StreamSorter<
 				return null;
 			}
 		});
-		sortRightFuture.run();
-		sortLeftFuture.run();
+		
+		new Thread(sortLeftFuture).start();
+		new Thread(sortRightFuture).start();
+	
 		try {
 			this.leftCache = getUninterruptibly(sortLeftFuture);
 			this.rightCache= getUninterruptibly(sortRightFuture);

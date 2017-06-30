@@ -70,14 +70,12 @@ public final class SortServer implements Runnable, AutoCloseable {
 				BufferedWriter charSink = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream(), StandardCharsets.UTF_8));
 			) {
 				try {
-					String result = charSource.readLine();
-					while (!("").equals(result)) {
-						streamSorter.write(result);
-						result = charSource.readLine();
+					String line = charSource.readLine();
+					while (!line.isEmpty()) {
+						streamSorter.write(line);
+						line = charSource.readLine();
 					}
-
 					streamSorter.sort();
-
 					charSink.write("ok");
 					charSink.newLine();
 					charSink.flush();
